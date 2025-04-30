@@ -1,59 +1,16 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="apple-touch-icon" sizes="180x180" href="https://wangwenzhi.eu.org/images/favicon_io/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="https://wangwenzhi.eu.org/images/favicon_io/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="https://wangwenzhi.eu.org/images/favicon_io/favicon-16x16.png">
-    <link rel="manifest" href="https://wangwenzhi.eu.org/images/favicon_io/site.webmanifest">
     <title>MBTI 测试</title>
     <style>
         :root {
             --bg-gradient-start: #f9d5e5;
             --bg-gradient-end: #d6eaf8;
-            --card-bg: rgba(255, 255, 255, 0.85);
-            --card-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             --button-bg: #f8bbd0;
             --button-hover: #f48fb1;
             --progress-default: #e0e0e0;
@@ -67,19 +24,17 @@
             font-family: 'Comic Sans MS', '华文彩云', sans-serif;
             background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
-            overflow: hidden;
         }
 
         h1 {
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
             margin-bottom: 20px;
-            font-size: 2.5em;
-            color: #333;
         }
 
         #progress-bar {
@@ -109,7 +64,6 @@
             text-align: center;
             margin-bottom: 20px;
             position: relative;
-            backdrop-filter: blur(5px);
         }
 
         #progress-text {
@@ -118,7 +72,6 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 13px;
-            color: #555;
         }
 
         .option {
@@ -128,12 +81,7 @@
             padding: 15px 30px;
             margin: 10px;
             cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        .option:hover {
-            background-color: var(--button-hover);
+            transition: all 0.3s ease;
         }
 
         .option:active {
@@ -149,7 +97,6 @@
             max-width: 600px;
             text-align: center;
             font-family: '微软雅黑', '幼圆', sans-serif;
-            box-shadow: var(--card-shadow);
         }
 
         #restart {
@@ -159,12 +106,7 @@
             padding: 15px 30px;
             margin-top: 20px;
             cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        #restart:hover {
-            background-color: var(--button-hover);
+            transition: all 0.3s ease;
         }
 
         #restart:active {
@@ -173,47 +115,20 @@
 
         .firework {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 20%, transparent 70%);
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            animation: cartoon-firework 1.2s ease-out forwards;
-            pointer-events: none;
+            animation: firework 1s ease-out forwards;
+            background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 0, 1) 20%, rgba(255, 105, 180, 1) 50%, rgba(0, 191, 255, 1) 80%);
         }
 
-        @keyframes cartoon-firework {
-            0% {
-                transform: scale(0) rotate(0deg);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(2) rotate(45deg);
-                opacity: 0.8;
-            }
-            100% {
-                transform: scale(4) rotate(90deg);
-                opacity: 0;
-            }
-        }
-
-        .firework::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: inherit;
-            border-radius: 50%;
-            transform: rotate(45deg);
-            animation: cartoon-firework-spark 1.2s ease-out forwards;
-        }
-
-        @keyframes cartoon-firework-spark {
+        @keyframes firework {
             0% {
                 transform: scale(0);
                 opacity: 1;
             }
             100% {
-                transform: scale(3);
+                transform: scale(20);
                 opacity: 0;
             }
         }
@@ -226,7 +141,7 @@
         <div id="progress"></div>
     </div>
     <div id="question-card">
-        <div id="progress-text">0/10</div>
+        <div id="progress-text">0/100</div>
         <p id="question"></p>
         <button class="option" id="option1" onclick="selectOption(0)"></button>
         <button class="option" id="option2" onclick="selectOption(1)"></button>
@@ -288,6 +203,481 @@
                 question: "当你有一个想法时，你会？",
                 options: ["马上行动", "先计划好再行动"],
                 answer: null
+            },
+            {
+                question: "你喜欢在聚会中？",
+                options: ["成为焦点，活跃气氛", "安静地在一旁观察交流"],
+                answer: null
+            },
+            {
+                question: "对于未来的规划，你是？",
+                options: ["有明确详细的计划", "走一步看一步"],
+                answer: null
+            },
+            {
+                question: "在处理问题时，你更看重？",
+                options: ["客观事实和逻辑", "他人的感受和关系"],
+                answer: null
+            },
+            {
+                question: "你在阅读书籍时，更喜欢？",
+                options: ["科幻、奇幻类", "传记、历史类"],
+                answer: null
+            },
+            {
+                question: "当你和朋友意见不一致时，你会？",
+                options: ["坚持自己的观点并说服对方", "尝试理解对方观点并妥协"],
+                answer: null
+            },
+            {
+                question: "你在旅行时，更倾向于？",
+                options: ["自由行，探索未知地方", "跟团游，按计划行程走"],
+                answer: null
+            },
+            {
+                question: "你平时更愿意和？",
+                options: ["一大群朋友一起活动", "少数几个亲密朋友相处"],
+                answer: null
+            },
+            {
+                question: "在做一件事情之前，你会？",
+                options: ["充分准备，考虑各种可能", "边做边摸索"],
+                answer: null
+            },
+            {
+                question: "你对新环境的适应能力？",
+                options: ["很快融入新环境", "需要一些时间适应"],
+                answer: null
+            },
+            {
+                question: "你更喜欢抽象的理论还是具体的实例？",
+                options: ["抽象的理论", "具体的实例"],
+                answer: null
+            },
+            {
+                question: "你在课堂上，通常是？",
+                options: ["积极发言，表达自己的观点", "认真听讲，较少主动发言"],
+                answer: null
+            },
+            {
+                question: "你选择职业时，更看重？",
+                options: ["有挑战性和发展空间", "稳定和福利待遇"],
+                answer: null
+            },
+            {
+                question: "你在购物时，是？",
+                options: ["果断决策，快速购买", "反复比较，谨慎选择"],
+                answer: null
+            },
+            {
+                question: "你喜欢参加？",
+                options: ["热闹的集体活动", "安静的个人活动"],
+                answer: null
+            },
+            {
+                question: "当你遇到困难时，你会首先？",
+                options: ["自己尝试解决", "向他人寻求帮助"],
+                answer: null
+            },
+            {
+                question: "你对艺术的兴趣主要在于？",
+                options: ["富有创意和想象力的作品", "传统和经典的作品"],
+                answer: null
+            },
+            {
+                question: "你在团队讨论中，通常是？",
+                options: ["提出新的想法和观点", "支持和完善他人的想法"],
+                answer: null
+            },
+            {
+                question: "你更喜欢哪种类型的音乐？",
+                options: ["摇滚、流行等节奏强烈的音乐", "古典、民谣等舒缓的音乐"],
+                answer: null
+            },
+            {
+                question: "你在处理人际关系时，更倾向于？",
+                options: ["直接表达自己的想法和感受", "委婉含蓄地表达"],
+                answer: null
+            },
+            {
+                question: "你对时间的管理是？",
+                options: ["严格按照计划进行", "比较灵活，随情况调整"],
+                answer: null
+            },
+            {
+                question: "你在面对陌生场景时，会？",
+                options: ["主动探索和尝试", "保持警惕，先观察"],
+                answer: null
+            },
+            {
+                question: "你更喜欢思考？",
+                options: ["宏观的、抽象的问题", "具体的、实际的问题"],
+                answer: null
+            },
+            {
+                question: "你在做游戏时，是？",
+                options: ["喜欢竞争，争取胜利", "注重参与和体验"],
+                answer: null
+            },
+            {
+                question: "你在学习一门新语言时，更倾向于？",
+                options: ["通过交流实践学习", "通过书本和课程学习"],
+                answer: null
+            },
+            {
+                question: "你对时尚的态度是？",
+                options: ["紧跟潮流，尝试新风格", "保持自己的风格，不太在意潮流"],
+                answer: null
+            },
+            {
+                question: "你在团队中，更愿意负责？",
+                options: ["开创性的工作", "保障性的工作"],
+                answer: null
+            },
+            {
+                question: "你在写文章时，更注重？",
+                options: ["文章的创新性和独特性", "文章的逻辑性和准确性"],
+                answer: null
+            },
+            {
+                question: "你在和陌生人交流时，会？",
+                options: ["轻松自如，话题不断", "有些紧张，需要时间适应"],
+                answer: null
+            },
+            {
+                question: "你对美食的追求是？",
+                options: ["尝试各种新奇的美食", "喜欢熟悉的传统美食"],
+                answer: null
+            },
+            {
+                question: "你在做运动时，更喜欢？",
+                options: ["团队运动，如篮球、足球", "个人运动，如跑步、瑜伽"],
+                answer: null
+            },
+            {
+                question: "你在面对变化时，是？",
+                options: ["积极拥抱变化，寻求新机会", "有些抗拒，希望保持现状"],
+                answer: null
+            },
+            {
+                question: "你在解决问题时，更擅长？",
+                options: ["提出创新的解决方案", "运用已有的经验和方法"],
+                answer: null
+            },
+            {
+                question: "你在社交网络上，是？",
+                options: ["活跃分子，经常分享动态", "潜水者，很少发言"],
+                answer: null
+            },
+            {
+                question: "你在学习中，更注重？",
+                options: ["知识的广度和多样性", "知识的深度和专业性"],
+                answer: null
+            },
+            {
+                question: "你在选择朋友时，更看重？",
+                options: ["朋友的性格和兴趣", "朋友的社会地位和资源"],
+                answer: null
+            },
+            {
+                question: "你在面对批评时，会？",
+                options: ["虚心接受并反思", "有些抵触，觉得自己没错"],
+                answer: null
+            },
+            {
+                question: "你在做决策时，更依赖？",
+                options: ["直觉和灵感", "数据和事实"],
+                answer: null
+            },
+            {
+                question: "你在生活中，更倾向于？",
+                options: ["追求刺激和冒险", "追求平稳和安全"],
+                answer: null
+            },
+            {
+                question: "你在团队合作中，对冲突的态度是？",
+                options: ["积极解决冲突，促进团队发展", "尽量避免冲突，维持和谐"],
+                answer: null
+            },
+            {
+                question: "你在欣赏艺术作品时，更关注？",
+                options: ["作品传达的情感和思想", "作品的技巧和表现形式"],
+                answer: null
+            },
+            {
+                question: "你在安排假期时，是？",
+                options: ["提前规划好行程和活动", "到时候再说，随性安排"],
+                answer: null
+            },
+            {
+                question: "你在和他人合作时，更看重？",
+                options: ["合作的效率和成果", "合作的氛围和关系"],
+                answer: null
+            },
+            {
+                question: "你在学习新知识时，更倾向于？",
+                options: ["自己探索和发现", "跟随老师或他人的指导"],
+                answer: null
+            },
+            {
+                question: "你在面对挑战时，是？",
+                options: ["充满信心，勇往直前", "有些担忧，需要时间准备"],
+                answer: null
+            },
+            {
+                question: "你在社交场合中，更擅长？",
+                options: ["与不同类型的人交流互动", "与熟悉的人深入交流"],
+                answer: null
+            },
+            {
+                question: "你在做手工时，更注重？",
+                options: ["作品的创意和独特性", "作品的精致和完美"],
+                answer: null
+            },
+            {
+                question: "你在选择旅游目的地时，更倾向于？",
+                options: ["繁华的都市，体验现代生活", "宁静的乡村，感受自然之美"],
+                answer: null
+            },
+            {
+                question: "你在工作中，更愿意承担？",
+                options: ["高风险高回报的任务", "稳定可靠的任务"],
+                answer: null
+            },
+            {
+                question: "你在阅读时，更注重？",
+                options: ["理解作者的思想和观点", "欣赏文字的优美和韵律"],
+                answer: null
+            },
+            {
+                question: "你在面对压力时，更倾向于？",
+                options: ["通过运动或活动释放压力", "通过休息或独处缓解压力"],
+                answer: null
+            },
+            {
+                question: "你在团队中，对新成员的态度是？",
+                options: ["热情欢迎，主动帮助", "保持距离，观察一段时间"],
+                answer: null
+            },
+            {
+                question: "你在选择衣服时，更看重？",
+                options: ["款式的时尚和独特", "穿着的舒适和得体"],
+                answer: null
+            },
+            {
+                question: "你在学习一门技能时，更注重？",
+                options: ["技能的实用性和效率", "技能的艺术性和美感"],
+                answer: null
+            },
+            {
+                question: "你在面对失败时，会？",
+                options: ["总结经验，重新再来", "有些沮丧，需要时间恢复"],
+                answer: null
+            },
+            {
+                question: "你在社交中，更倾向于？",
+                options: ["主动发起话题和活动", "等待他人邀请和安排"],
+                answer: null
+            },
+            {
+                question: "你在做决策时，更注重？",
+                options: ["决策的速度和及时性", "决策的准确性和稳定性"],
+                answer: null
+            },
+            {
+                question: "你在生活中，更追求？",
+                options: ["个人的成就和荣誉", "家庭和朋友的幸福"],
+                answer: null
+            },
+            {
+                question: "你在团队合作中，对规则的态度是？",
+                options: ["严格遵守规则，维护秩序", "灵活对待规则，根据情况调整"],
+                answer: null
+            },
+            {
+                question: "你在欣赏音乐时，更关注？",
+                options: ["音乐的情感表达和意境", "音乐的节奏和旋律"],
+                answer: null
+            },
+            {
+                question: "你在安排一天的活动时，是？",
+                options: ["制定详细的计划，按计划执行", "大致有个想法，随机应变"],
+                answer: null
+            },
+            {
+                question: "你在和他人交往时，更看重？",
+                options: ["对方的才华和能力", "对方的品德和性格"],
+                answer: null
+            },
+            {
+                question: "你在学习中，更擅长？",
+                options: ["快速掌握新知识和技能", "深入钻研已有的知识和技能"],
+                answer: null
+            },
+            {
+                question: "你在面对选择时，更依赖？",
+                options: ["自己的判断和感觉", "他人的建议和意见"],
+                answer: null
+            },
+            {
+                question: "你在生活中，更倾向于？",
+                options: ["追求新鲜和变化", "追求稳定和熟悉"],
+                answer: null
+            },
+            {
+                question: "你在团队合作中，对分工的态度是？",
+                options: ["明确分工，各司其职", "灵活分工，互相协作"],
+                answer: null
+            },
+            {
+                question: "你在欣赏绘画作品时，更关注？",
+                options: ["作品的主题和内涵", "作品的色彩和构图"],
+                answer: null
+            },
+            {
+                question: "你在安排学习时间时，是？",
+                options: ["制定严格的时间表，按时学习", "根据自己的状态和需求安排"],
+                answer: null
+            },
+            {
+                question: "你在和他人合作时，更注重？",
+                options: ["合作的默契和配合", "合作的公平和公正"],
+                answer: null
+            },
+            {
+                question: "你在学习新知识时，更倾向于？",
+                options: ["从多个角度去理解和分析", "专注于一个重点深入学习"],
+                answer: null
+            },
+            {
+                question: "你在面对困难时，更倾向于？",
+                options: ["自己独立解决，不轻易求助", "及时向他人求助，共同解决"],
+                answer: null
+            },
+            {
+                question: "你在社交场合中，更在意？",
+                options: ["自己的表现和形象", "与他人的交流和互动"],
+                answer: null
+            },
+            {
+                question: "你在做手工时，更享受？",
+                options: ["创作的过程和乐趣", "完成作品的成就感"],
+                answer: null
+            },
+            {
+                question: "你在选择旅游方式时，更倾向于？",
+                options: ["自驾游，自由随性", "跟团游，省心省力"],
+                answer: null
+            },
+            {
+                question: "你在工作中，更注重？",
+                options: ["工作的成果和业绩", "工作的过程和体验"],
+                answer: null
+            },
+            {
+                question: "你在阅读时，更享受？",
+                options: ["沉浸在书中的世界", "思考书中的问题"],
+                answer: null
+            },
+            {
+                question: "你在面对压力时，更倾向于？",
+                options: ["通过娱乐或消遣缓解压力", "通过工作或学习转移压力"],
+                answer: null
+            },
+            {
+                question: "你在团队中，对领导的态度是？",
+                options: ["积极支持领导的决策", "有自己的想法，会适当提出建议"],
+                answer: null
+            },
+            {
+                question: "你在选择衣服时，更注重？",
+                options: ["衣服的个性和风格", "衣服的质量和实用性"],
+                answer: null
+            },
+            {
+                question: "你在学习一门技能时，更看重？",
+                options: ["技能的通用性和适用性", "技能的专业性和深度"],
+                answer: null
+            },
+            {
+                question: "你在面对失败时，更倾向于？",
+                options: ["从失败中吸取教训，不断改进", "有些气馁，可能会放弃"],
+                answer: null
+            },
+            {
+                question: "你在社交中，更擅长？",
+                options: ["调节气氛，让大家开心", "倾听他人，给予支持"],
+                answer: null
+            },
+            {
+                question: "你在做决策时，更注重？",
+                options: ["决策的创新性和前瞻性", "决策的可行性和稳定性"],
+                answer: null
+            },
+            {
+                question: "你在生活中，更追求？",
+                options: ["个人的兴趣和爱好", "社会的认可和尊重"],
+                answer: null
+            },
+            {
+                question: "你在团队合作中，对创新的态度是？",
+                options: ["鼓励创新，尝试新方法", "谨慎创新，遵循传统方法"],
+                answer: null
+            },
+            {
+                question: "你在欣赏音乐时，更享受？",
+                options: ["随着音乐舞动或哼唱", "安静地聆听和感受"],
+                answer: null
+            },
+            {
+                question: "你在安排一天的活动时，更倾向于？",
+                options: ["先完成重要的任务，再做其他事情", "根据心情和兴趣选择做的事情"],
+                answer: null
+            },
+            {
+                question: "你在和他人交往时，更注重？",
+                options: ["与他人的共同话题和兴趣", "与他人的情感交流和信任"],
+                answer: null
+            },
+            {
+                question: "你在学习中，更擅长？",
+                options: ["举一反三，触类旁通", "脚踏实地，循序渐进"],
+                answer: null
+            },
+            {
+                question: "你在面对选择时，更看重？",
+                options: ["选择的多样性和可能性", "选择的确定性和稳定性"],
+                answer: null
+            },
+            {
+                question: "你在生活中，更倾向于？",
+                options: ["主动尝试新事物，拓展视野", "坚守自己的舒适区，保持熟悉"],
+                answer: null
+            },
+            {
+                question: "你在团队合作中，对竞争的态度是？",
+                options: ["积极参与竞争，争取优势", "避免过度竞争，注重合作"],
+                answer: null
+            },
+            {
+                question: "你在欣赏绘画作品时，更享受？",
+                options: ["解读作品背后的故事和意义", "欣赏作品的视觉美感"],
+                answer: null
+            },
+            {
+                question: "你在安排学习时间时，更倾向于？",
+                options: ["集中精力，一次性完成学习任务", "分散学习，分阶段完成任务"],
+                answer: null
+            },
+            {
+                question: "你在和他人合作时，更注重？",
+                options: ["合作的效率和效果", "合作的和谐和愉快"],
+                answer: null
+            },
+            {
+                question: "你在学习新知识时，更倾向于？",
+                options: ["广泛涉猎，了解不同领域的知识", "深入研究，成为某一领域的专家"],
+                answer: null
             }
         ];
 
@@ -327,17 +717,18 @@
             let tCount = 0;
             let jCount = 0;
 
+            // 计分逻辑示例，可按需调整
             for (let i = 0; i < questions.length; i++) {
-                if (i === 0 && questions[i].answer === 0) eCount++;
-                if (i === 1 && questions[i].answer === 0) nCount++;
-                if (i === 2 && questions[i].answer === 0) tCount++;
-                if (i === 3 && questions[i].answer === 0) jCount++;
+                if ((i % 4 === 0) && questions[i].answer === 0) eCount++;
+                if ((i % 4 === 1) && questions[i].answer === 0) jCount++;
+                if ((i % 4 === 2) && questions[i].answer === 0) nCount++;
+                if ((i % 4 === 3) && questions[i].answer === 0) tCount++;
             }
 
-            const e = eCount > 0 ? 'E' : 'I';
-            const n = nCount > 0 ? 'N' : 'S';
-            const t = tCount > 0 ? 'T' : 'F';
-            const j = jCount > 0 ? 'J' : 'P';
+            const e = eCount > 0? 'E' : 'I';
+            const n = nCount > 0? 'N' : 'S';
+            const t = tCount > 0? 'T' : 'F';
+            const j = jCount > 0? 'J' : 'P';
 
             const resultType = e + n + t + j;
             let resultDescription = '';
@@ -377,16 +768,15 @@
         }
 
         function createFireworks() {
-            const numFireworks = 30;
+            const numFireworks = 100;
             for (let i = 0; i < numFireworks; i++) {
                 const firework = document.createElement('div');
                 firework.classList.add('firework');
                 firework.style.left = `${Math.random() * window.innerWidth}px`;
                 firework.style.top = `${Math.random() * window.innerHeight}px`;
-                const colors = ['#ff69b4', '#ffd700', '#00bfff', '#32cd32'];
+                const colors = ['#ff69b4', '#ffff00', '#00bfff', '#ff8c00', '#9400d3'];
                 firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 document.body.appendChild(firework);
-                setTimeout(() => firework.remove(), 1200); // Remove after animation
             }
         }
 
@@ -410,4 +800,4 @@
     </script>
 </body>
 
-</html>
+</html>    
